@@ -887,7 +887,7 @@ function selectUnit(u, el) {
   document.querySelectorAll('.unit-pill').forEach(p=>p.classList.remove('selected'));
   el.classList.add('selected');
   const ws=UNIT_MAP[u];
-  document.getElementById('range-from').value=ws[0].num;
+  document.getElementById('range-from').value=1;
   document.getElementById('range-to').value=ws[ws.length-1].num;
   updateUnitRange();
 }
