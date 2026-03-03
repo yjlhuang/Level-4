@@ -735,6 +735,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
       <option value="az">A–Z</option>
       <option value="familiarity">依熟悉度</option>
     </select>
+    <select class="sort-select" id="unit-filter-select" onchange="renderAC()">
+      <option value="0">所有單元</option>
+    </select>
     <input class="search-input" type="text" placeholder="🔍 搜尋單字或中文…" oninput="setSearch(this.value)">
   </div>
   <div class="all-cards-grid" id="ac-grid"></div>
@@ -1261,13 +1264,15 @@ function setFilter(f,el) {
 function setSearch(v){acSearch=v;renderAC();}
 function renderAC() {
   const sort=document.getElementById('sort-select').value;
+  const unitFilter=parseInt(document.getElementById('unit-filter-select').value)||0;
   let list=[...WORDS];
   // filter
   list=list.filter(w=>{
     const s=getFamStatus(w.id);
     const mf=acFilter==='all'||s===acFilter;
+    const mu=unitFilter===0||w.unit===unitFilter;
     const ms=!acSearch||w.word.toLowerCase().includes(acSearch.toLowerCase())||w.meaning.includes(acSearch);
-    return mf&&ms;
+    return mf&&mu&&ms;
   });
   // sort
   if(sort==='az') list.sort((a,b)=>a.word.localeCompare(b.word));
@@ -1318,6 +1323,13 @@ function closeModalBtn(){document.getElementById('modal-overlay').classList.remo
 // INIT
 // ═══════════════════════════════
 initHome();
+// Populate unit filter dropdown
+const ufs = document.getElementById('unit-filter-select');
+UNITS.forEach(u => {
+  const opt = document.createElement('option');
+  opt.value = u; opt.textContent = '單元 ' + u;
+  ufs.appendChild(opt);
+});
 </script>
 </body>
 </html>
