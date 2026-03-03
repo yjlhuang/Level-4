@@ -870,6 +870,7 @@ function initHome() {
     const el=document.createElement('div');
     el.className='unit-pill'+(u===S.selUnit?' selected':'');
     el.textContent='U'+u;
+    el.dataset.unit=u;
     el.onclick=()=>selectUnit(u,el);
     container.appendChild(el);
   });
@@ -896,11 +897,21 @@ function updateUnitRange() {
   document.getElementById('range-hint').textContent=
     `共 ${selected.length} 個單字（單元 ${S.selUnit}）`;
   S.fromNum=from; S.toNum=to;
+  // Enable start button if mode selected
+  if (S.mode && selected.length>0) {
+    document.getElementById('start-btn').disabled=false;
+  }
 }
 
 function getSelectedWords() {
-  const ws=UNIT_MAP[S.selUnit]||[];
-  return ws.filter(w=>w.num>=S.fromNum && w.num<=S.toNum);
+  // Always re-read from DOM to avoid stale state
+  const selPill=document.querySelector('.unit-pill.selected');
+  const unit=selPill?parseInt(selPill.dataset.unit):S.selUnit;
+  S.selUnit=unit;
+  const ws=UNIT_MAP[unit]||[];
+  const from=parseInt(document.getElementById('range-from').value)||1;
+  const to=parseInt(document.getElementById('range-to').value)||9999;
+  return ws.filter(w=>w.num>=from && w.num<=to);
 }
 
 function selectMode(m) {
@@ -919,8 +930,9 @@ function toggleFC() {
 }
 
 function startSession() {
+  if (!S.mode) { showToast('請先選擇一個模式'); return; }
   S.words=getSelectedWords();
-  if (!S.words.length) { showToast('範圍內沒有單字'); return; }
+  if (!S.words.length) { showToast('範圍內沒有單字，請調整範圍'); return; }
   S.skipped.clear(); S.seen.clear();
   if (S.mode==='review') startFCList();
   else if (S.useFC) startFCList();
@@ -1292,6 +1304,7 @@ function closeModalBtn(){document.getElementById('modal-overlay').classList.remo
 // ═══════════════════════════════
 ['range-from','range-to'].forEach(id=>{
   document.getElementById(id).addEventListener('input',updateUnitRange);
+  document.getElementById(id).addEventListener('change',updateUnitRange);
 });
 
 // ═══════════════════════════════
