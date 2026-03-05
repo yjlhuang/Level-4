@@ -140,6 +140,14 @@ body::before{
 }
 .toggle-switch.on::after{transform:translateX(16px);}
 .fc-toggle-label{font-size:13px;color:var(--text2);}
+.fam-filter-row{
+  display:flex;align-items:center;gap:10px;
+  margin-top:12px;padding:12px 14px;
+  background:var(--surface2);border-radius:10px;
+  border:1px solid var(--border);cursor:pointer;
+}
+.fam-filter-label{font-size:13px;color:var(--text2);flex:1;}
+.fam-filter-sub{font-size:11px;color:var(--text3);margin-top:2px;}
 
 .start-btn{
   width:100%;max-width:480px;
@@ -577,6 +585,13 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
       <label id="range-unit-max" style="font-size:11px;color:var(--text3);margin-left:2px"></label>
     </div>
     <div class="range-hint" id="range-hint">共 34 個單字（單元 1）</div>
+    <div class="fam-filter-row" id="fam-filter-row" onclick="toggleFamFilter()">
+      <div class="toggle-switch" id="fam-sw"></div>
+      <div>
+        <div class="fam-filter-label">只練習需加強的字</div>
+        <div class="fam-filter-sub" id="fam-filter-sub">包含「🔴 需加強」和「⚪ 未測試」</div>
+      </div>
+    </div>
   </div>
 
   <div class="home-card">
@@ -822,7 +837,7 @@ const UNITS = Object.keys(UNIT_MAP).map(Number).sort((a,b)=>a-b);
 const S = {
   mode: null, selUnit: 1,
   fromNum: 1, toNum: 34,
-  useFC: false,
+  useFC: false, famFilter: false,
   words: [],            // selected words for session
   // flashcard
   fcIdx: 0, skipped: new Set(), seen: new Set(),
@@ -934,12 +949,26 @@ function updateUnitRange() {
   const from=parseInt(document.getElementById('range-from').value)||1;
   const to=parseInt(document.getElementById('range-to').value)||maxNum;
   const selected=ws.filter(w=>w.num>=from && w.num<=to);
+  let filtered=selected;
+  if (S.famFilter) {
+    filtered=selected.filter(w=>{ const s=getFamStatus(w.id); return s==='gray'||s==='red'; });
+    const sub=document.getElementById('fam-filter-sub');
+    if (sub) sub.textContent=`此範圍內共 ${filtered.length} 個需加強/未測試`;
+  }
   document.getElementById('range-hint').textContent=
-    `共 ${selected.length} 個單字（單元 ${S.selUnit}）`;
+    S.famFilter
+      ? `共 ${filtered.length} 個（已過濾）/ 範圍共 ${selected.length} 個（單元 ${S.selUnit}）`
+      : `共 ${selected.length} 個單字（單元 ${S.selUnit}）`;
   S.fromNum=from; S.toNum=to;
   // Enable start button if mode selected
-  if (S.mode && selected.length>0) {
+  if (S.mode && filtered.length>0) {
     document.getElementById('start-btn').disabled=false;
+  } else if (S.mode && filtered.length===0) {
+    document.getElementById('start-btn').disabled=true;
+    document.getElementById('start-btn').textContent='此範圍無需加強的字';
+  }
+  if (S.mode && filtered.length>0) {
+    document.getElementById('start-btn').textContent='開始 →';
   }
 }
 
@@ -951,7 +980,11 @@ function getSelectedWords() {
   const ws=UNIT_MAP[unit]||[];
   const from=parseInt(document.getElementById('range-from').value)||1;
   const to=parseInt(document.getElementById('range-to').value)||9999;
-  return ws.filter(w=>w.num>=from && w.num<=to);
+  let filtered=ws.filter(w=>w.num>=from && w.num<=to);
+  if (S.famFilter) {
+    filtered=filtered.filter(w=>{ const s=getFamStatus(w.id); return s==='gray'||s==='red'; });
+  }
+  return filtered;
 }
 
 function selectMode(m) {
@@ -967,6 +1000,12 @@ function selectMode(m) {
 function toggleFC() {
   S.useFC=!S.useFC;
   document.getElementById('fc-sw').classList.toggle('on',S.useFC);
+}
+
+function toggleFamFilter() {
+  S.famFilter=!S.famFilter;
+  document.getElementById('fam-sw').classList.toggle('on',S.famFilter);
+  updateUnitRange();
 }
 
 function startSession() {
